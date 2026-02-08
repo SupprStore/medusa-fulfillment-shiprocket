@@ -191,6 +191,12 @@ class ShiprocketFulfillmentProviderService extends AbstractFulfillmentProviderSe
       ? context?.shipping_address?.postal_code
       : pickupLocation.pin_code
 
+    if (!pickupPostcode || !deliveryPostcode) {
+      throw new Error(
+        'Shiprocket: Missing pickup or delivery postal code for rate calculation.'
+      )
+    }
+
     const declaredValue = normalizeAmount(
       context?.subtotal ?? sumLineItemTotals(items),
       context?.currency_code

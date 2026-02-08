@@ -88,6 +88,7 @@ async function reverseOrder(reverseData: ReverseOrderData): Promise<any> {
         : fromOrder.items
       ).map(async (item) => {
         const variant = item.variant || item.product_variant || item.productVariant
+        const metadata = item.metadata || {}
         const {
           qc_enable,
           qc_color,
@@ -97,7 +98,7 @@ async function reverseOrder(reverseData: ReverseOrderData): Promise<any> {
           qc_size,
           qc_product_name,
           qc_product_image,
-        } = item.metadata
+        } = metadata
 
         const totals = totalsService?.getLineItemTotals
           ? await totalsService.getLineItemTotals(item, fromOrder, {
