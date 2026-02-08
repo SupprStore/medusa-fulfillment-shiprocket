@@ -2,6 +2,8 @@
 
 Shiprocket fulfillment module provider for MedusaJS v2
 
+Compatibility: Medusa v2.0+
+
 This plugin is inspired by Medusa's Official [Webshipper Plugin](https://github.com/medusajs/medusa/tree/cab5821f55cfa448c575a20250c918b7fc6835c9/packages/medusa-fulfillment-webshipper)
 
 [Medusa Website](https://medusajs.com) | [Medusa Repository](https://github.com/medusajs/medusa) | [Shiprocket API](https://apidocs.shiprocket.in) | [Postman Collection](https://www.postman.com/hans88/workspace/shiprocket/documentation/624374-cafac1c7-ae25-4c93-820d-398cf0cfee6a)
@@ -83,6 +85,29 @@ export default defineConfig({
     },
   ],
 })
+```
+
+---
+<br/>
+
+## Development
+
+1\. Install dependencies:
+
+```bash
+yarn install
+```
+
+2\. Build the package (outputs compiled files to the package root):
+
+```bash
+yarn build
+```
+
+3\. Watch mode during development:
+
+```bash
+yarn watch
 ```
 
 ---
