@@ -1,66 +1,46 @@
 import axios, { type AxiosInstance } from 'axios'
+import axiosRetry from 'axios-retry'
+import rateLimit from 'axios-rate-limit'
 
 type ShiprocketOptions = {
-  account?: string
   token?: string
 }
 
-type OrderEndpoints = {
-  retrieveById: (id: string | number) => Promise<any>
-  createCustom: (data: any) => Promise<any>
-  createForChannel: (data: any) => Promise<any>
-  cancelOrder: (data: any) => Promise<void>
-  cancelShipment: (data: any) => Promise<any>
-}
-
-type ShipmentEndpoints = {
-  retrieveById: (id: string | number) => Promise<any>
-}
-
-type CourierEndpoints = {
-  retrieveAll: (type: string) => Promise<any>
-  getServiceability: (data: any) => Promise<any>
-}
-
-type CompanyEndpoints = {
-  retrieveAll: () => Promise<any>
-}
-
-type ReturnEndpoints = {
-  createReturn: (data: any) => Promise<any>
-}
-
-type WrapperEndpoints = {
-  forward: (data: any) => Promise<any>
-  reverse: (data: any) => Promise<any>
+export interface ShiprocketServiceabilityPayload {
+  pickup_postcode: number
+  delivery_postcode: number
+  cod: boolean
+  weight: number
+  declared_value?: number
 }
 
 class Shiprocket {
   private token_?: string
   private client_: AxiosInstance
-  orders: OrderEndpoints
-  shipments: ShipmentEndpoints
-  couriers: CourierEndpoints
-  company: CompanyEndpoints
-  returns: ReturnEndpoints
-  wrapper: WrapperEndpoints
+  orders: ReturnType<typeof this.buildOrderEndpoints_>
+  shipments: ReturnType<typeof this.buildShipmentEndpoints_>
+  couriers: ReturnType<typeof this.buildCourierEndpoints_>
+  company: ReturnType<typeof this.buildCompanyEndpoints_>
+  returns: ReturnType<typeof this.buildReturnEndpoints_>
+  wrapper: ReturnType<typeof this.buildWrapperEndpoints_>
 
-  constructor({ account, token }: ShiprocketOptions = {}) {
-    //this.account_ = account
+  constructor({ token }: ShiprocketOptions = {}) {
     this.token_ = token
-    this.client_ = axios.create({
+    const baseClient = axios.create({
       baseURL: `https://apiv2.shiprocket.in/v1/external`,
       headers: {
         'content-type': 'application/json',
       },
     })
 
+    // Apply rate limit (2 requests per second) and retry logic (3 retries with exponential backoff)
+    this.client_ = rateLimit(baseClient, { maxRequests: 2, perMilliseconds: 1000 })
+    axiosRetry(this.client_, { retries: 3, retryDelay: axiosRetry.exponentialDelay })
+
     if (token) {
       this.client_.defaults.headers.Authorization = `Bearer ${token}`
     }
 
-    // this.documents = this.buildDocumentEndpoints_()
-    // this.shippingRates = this.buildShippingRateEndpoints_()
     this.orders = this.buildOrderEndpoints_()
     this.shipments = this.buildShipmentEndpoints_()
     this.couriers = this.buildCourierEndpoints_()
@@ -78,338 +58,70 @@ class Shiprocket {
     }
   }
 
-  buildOrderEndpoints_ = (): OrderEndpoints => {
-    return {
-      // retrieveAll: async () => {
-      //   const path = `/orders`
-      //   return this.client_({
-      //     method: 'GET',
-      //     url: path,
-      //   }).then(({ data: {data:actualData} }) => actualData)
-      // },
-      retrieveById: async (id) => {
-        const path = `/orders/show/${id}`
-        return this.client_({
-          method: 'GET',
-          url: path,
-        })
-          .then(({ data: { data: actualData } }) => actualData)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error('Shiprocket Order: Failed to retrieveById')
-          })
-      },
-      // exportCSV: async (data) => {
-      //   const path = `/v2/orders/export`
-      //   return this.client_({
-      //     method: 'POST',
-      //     url: path,
-      //   }).then(({data}) => data)
-      // },
-      createCustom: async (data) => {
-        const path = `/orders/create/adhoc`
-        return this.client_({
-          method: 'POST',
-          url: path,
-          data: {
-            ...data,
-          },
-        })
-          .then(({ data }) => data)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error('Shiprocket Order: Failed to createCustom')
-          })
-      },
-      createForChannel: async (data) => {
-        const path = `/orders/create`
-        return this.client_({
-          method: 'POST',
-          url: path,
-          data: {
-            ...data,
-          },
-        })
-          .then(({ data }) => data)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error('Shiprocket Order: Failed to createForChannel')
-          })
-      },
-      // updatePickup: async (data) => {
-      //   const path = `/orders/address/pickup`
-      //   return this.client_({
-      //     method: 'PATCH',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(({ message }) => message)
-      // },
-      // updateDelivery: async (data) => {
-      //   const path = `/orders/address/update`
-      //   return this.client_({
-      //     method: 'POST',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(() => {}) //This request doesn't return any response body
-      // },
-      // updateOrder: async (data) => {
-      //   const path = `/orders/update/adhoc`
-      //   return this.client_({
-      //     method: 'POST',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(({data}) => data)
-      // },
-      cancelOrder: async (data) => {
-        const path = `/orders/cancel`
-        return this.client_({
-          method: 'POST',
-          url: path,
-          data: {
-            ...data,
-          },
-        })
-          .then(() => {}) //This request doesn't return any response body
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error('Shiprocket Order: Failed to cancelOrder')
-          })
-      },
-      // //Inventory sync mush be enabled to use this
-      // addInventoryForOrdered: async (data) => {
-      //   const path = `/orders/fulfill`
-      //   return this.client_({
-      //     method: 'PATCH',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(({data}) => data)
-      // },
-      // mapUnmapped: async (data) => {
-      //   const path = `/orders/fulfill`
-      //   return this.client_({
-      //     method: 'PATCH',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(({data}) => data)
-      // },
-      // bulkImport: async (data) => {
-      //   const path = `/orders/import`
-      //   return this.client_({
-      //     method: 'POST',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(({data}) => data)
-      // },
-      cancelShipment: async (data) => {
-        const path = `orders/cancel/shipment/awbs`
-        return this.client_({
-          method: 'POST',
-          url: path,
-          data: {
-            ...data,
-          },
-        })
-          .then(({ message }) => message)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error('Shiprocket Order: Failed to cancelShipment')
-          })
-      },
+  private buildOrderEndpoints_ = () => ({
+    retrieveById: async (id: string | number) => {
+      const { data: { data } } = await this.client_.get(`/orders/show/${id}`)
+      return data
+    },
+    createCustom: async (payload: any) => {
+      const { data } = await this.client_.post(`/orders/create/adhoc`, payload)
+      return data
+    },
+    createForChannel: async (payload: any) => {
+      const { data } = await this.client_.post(`/orders/create`, payload)
+      return data
+    },
+    cancelOrder: async (payload: any) => {
+      await this.client_.post(`/orders/cancel`, payload)
+    },
+    cancelShipment: async (payload: any) => {
+      const { data } = await this.client_.post(`orders/cancel/shipment/awbs`, payload)
+      return data.message
     }
-  }
+  })
 
-  buildShipmentEndpoints_ = (): ShipmentEndpoints => {
-    return {
-      retrieveById: async (id) => {
-        const path = `/shipments/${id}`
-        return this.client_({
-          method: 'GET',
-          url: path,
-        })
-          .then(({ data: { data: actualData } }) => actualData)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error('Shiprocket Shipment: Failed to retrieveById')
-          })
-      },
-      // retrieveAll: async () => {
-      //   const path = `/shipments`
-      //   return this.client_({
-      //     method: 'GET',
-      //     url: path,
-      //   }).then(({ data: {data:actualData} }) => actualData)
-      // },
+  private buildShipmentEndpoints_ = () => ({
+    retrieveById: async (id: string | number) => {
+      const { data: { data } } = await this.client_.get(`/shipments/${id}`)
+      return data
     }
-  }
+  })
 
-  buildCourierEndpoints_ = (): CourierEndpoints => {
-    return {
-      // createAWB: async (data) => {
-      //   const path = `/courier/assign/awb`
-      //   return this.client_({
-      //     method: 'POST',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(({data}) => data)
-      // },
-      retrieveAll: async (type) => {
-        const path = `/courier/courierListWithCounts?type=${type}`
-        return this.client_({
-          method: 'GET',
-          url: path,
-        })
-          .then(({ data: { courier_data } }) => courier_data)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error('Shiprocket Courier: Failed to retrieveAll')
-          })
-      },
-      getServiceability: async (data) => {
-        const path = `/courier/serviceability`
-        return this.client_({
-          method: 'GET',
-          url: path,
-          params: {
-            ...data,
-          },
-        })
-          .then(({ data: { data: actualData } }) => actualData)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error('Shiprocket Courier: Failed to getServiceability')
-          })
-      },
-      // getIntServiceability: async (data) => {
-      //   const path = `/courier/international/serviceability`
-      //   return this.client_({
-      //     method: 'GET',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(({ data: {data:actualData} }) => actualData)
-      // },
-      // createPickup: async (data) => {
-      //   const path = `/courier/generate/pickup`
-      //   return this.client_({
-      //     method: 'POST',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(({data}) => data)
-      // },
+  private buildCourierEndpoints_ = () => ({
+    retrieveAll: async (type: string) => {
+      const { data: { courier_data } } = await this.client_.get(`/courier/courierListWithCounts`, { params: { type } })
+      return courier_data
+    },
+    getServiceability: async (payload: ShiprocketServiceabilityPayload) => {
+      const { data: { data } } = await this.client_.get(`/courier/serviceability`, { params: payload })
+      return data
     }
-  }
+  })
 
-  buildCompanyEndpoints_ = (): CompanyEndpoints => {
-    return {
-      retrieveAll: async () => {
-        const path = `/settings/company/pickup`
-        return this.client_({
-          method: 'GET',
-          url: path,
-        })
-          .then(({ data: { data: actualData } }) => actualData)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error(
-              'Shiprocket Company: Failed to retrieveAll pickup locations'
-            )
-          })
-      },
-      // createLocation: async (data) => {
-      //   const path = `/settings/company/addpickup`
-      //   return this.client_({
-      //     method: 'POST',
-      //     url: path,
-      //     data: {
-      //       data,
-      //     },
-      //   }).then(({data}) => data)
-      // },
+  private buildCompanyEndpoints_ = () => ({
+    retrieveAll: async () => {
+      const { data: { data } } = await this.client_.get(`/settings/company/pickup`)
+      return data
     }
-  }
+  })
 
-  buildReturnEndpoints_ = (): ReturnEndpoints => {
-    return {
-      createReturn: async (data) => {
-        const path = `/orders/create/return`
-        return this.client_({
-          method: 'POST',
-          url: path,
-          data: {
-            ...data,
-          },
-        })
-          .then(({ data }) => data)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error('Shiprocket Return: Failed to createReturn')
-          })
-      },
-      // retrieveAll: async () => {
-      //   const path = `/orders/processing/return`
-      //   return this.client_({
-      //     method: 'GET',
-      //     url: path,
-      //   }).then(({ data: {data:actualData} }) => actualData)
-      // },
+  private buildReturnEndpoints_ = () => ({
+    createReturn: async (payload: any) => {
+      const { data } = await this.client_.post(`/orders/create/return`, payload)
+      return data
     }
-  }
+  })
 
-  buildWrapperEndpoints_ = (): WrapperEndpoints => {
-    return {
-      forward: async (data) => {
-        const path = `/shipments/create/forward-shipment`
-        return this.client_({
-          method: 'POST',
-          url: path,
-          data: {
-            ...data,
-          },
-        })
-          .then(({ data: { payload } }) => payload)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error(
-              'Shiprocket Wrapper: Failed to create forward shipment'
-            )
-          })
-      },
-      reverse: async (data) => {
-        const path = `/shipments/create/return-shipment`
-        return this.client_({
-          method: 'POST',
-          url: path,
-          data: {
-            ...data,
-          },
-        })
-          .then(({ data: { payload } }) => payload)
-          .catch((err) => {
-            console.log(err.response.data)
-            throw new Error(
-              'Shiprocket Wrapper: Failed to create reverse shipment'
-            )
-          })
-      },
+  private buildWrapperEndpoints_ = () => ({
+    forward: async (payload: any) => {
+      const { data: { payload: resPayload } } = await this.client_.post(`/shipments/create/forward-shipment`, payload)
+      return resPayload
+    },
+    reverse: async (payload: any) => {
+      const { data: { payload: resPayload } } = await this.client_.post(`/shipments/create/return-shipment`, payload)
+      return resPayload
     }
-  }
+  })
 }
 
 export default Shiprocket
