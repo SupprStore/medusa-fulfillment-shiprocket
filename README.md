@@ -6,7 +6,7 @@ This integration allows Medusa storefronts to seamlessly calculate real-time shi
 
 ---
 
-## 🚀 Features
+## Features
 
 - **Medusa v2 Alignment**: Fully leverages the `@medusajs/framework` v2 provider architectures.
 - **OpenAPI Type Safety**: Core API behaviors are handled by an auto-generated strict OpenAPI v3 client.
@@ -15,7 +15,7 @@ This integration allows Medusa storefronts to seamlessly calculate real-time shi
 
 ---
 
-## 📦 Installation
+## Installation
 
 To install the integration into your Medusa application:
 
@@ -27,20 +27,20 @@ yarn add medusa-fulfillment-shiprocket
 
 ---
 
-## ⚙️ Configuration
-
-Set your environment variables required to authenticate with the Shiprocket API:
+## Quick Start
 
 ```bash
-# .env
-SHIPROCKET_CHANNEL_ID=<YOUR_SHIPROCKET_CHANNEL_ID>
-SHIPROCKET_EMAIL=<YOUR_SHIPROCKET_EMAIL>
-SHIPROCKET_PASSWORD=<YOUR_SHIPROCKET_PASSWORD>
+# 1. Install
+yarn add medusa-fulfillment-shiprocket
+
+# 2. Set env vars
+SHIPROCKET_CHANNEL_ID=<your-channel-id>
+SHIPROCKET_EMAIL=<your-email>
+SHIPROCKET_PASSWORD=<your-password>
 ```
 
-Add the plugin to your `medusa-config.ts` inside the fulfillment module declaration:
-
 ```ts
+// 3. Register in medusa-config.ts
 import { defineConfig } from "@medusajs/framework/utils"
 
 export default defineConfig({
@@ -50,24 +50,12 @@ export default defineConfig({
       options: {
         providers: [
           {
-            // Point to the exported provider package index
-            resolve: "medusa-fulfillment-shiprocket/providers/fulfillment-shiprocket", 
+            resolve: "medusa-fulfillment-shiprocket/providers/fulfillment-shiprocket",
             id: "shiprocket",
             options: {
               channel_id: process.env.SHIPROCKET_CHANNEL_ID,
               email: process.env.SHIPROCKET_EMAIL,
               password: process.env.SHIPROCKET_PASSWORD,
-              
-              // Optional: Provide a token directly bypassing auth
-              token: "", 
-              
-              // Options
-              pricing: "calculated", // "flat_rate" | "calculated"
-              length_unit: "cm", // "mm" | "cm" | "inches"
-              multiple_items: "split_shipment", // "single_shipment" | "split_shipment"
-              inventory_sync: false, // true | false (Depends on Shiprocket channel settings)
-              forward_action: "create_order", // "create_order" | "create_fulfillment"
-              return_action: "create_order", // "create_order" | "create_fulfillment"
             },
           },
         ],
@@ -77,33 +65,13 @@ export default defineConfig({
 })
 ```
 
----
+> **Warning**: Shiprocket does **not** provide a testing sandbox. Real requests impact your live dashboard and wallet.
 
-## 🛠️ Usage & Integration
-
-### 1. Link or Install the Package
-In your actual Medusa storefront backend repository, add the package as a dependency. If you have locally published it, you can run:
-```bash
-yarn add medusa-fulfillment-shiprocket
-```
-
-### 2. Configure `medusa-config.ts`
-Inside your Medusa application's `medusa-config.ts` configuration file, inject the module under your standard `@medusajs/medusa/fulfillment` block as documented in the Configuration section above.
-
-### 3. Usage inside Medusa Admin
-1. Once your server reboots, navigate to your Medusa Admin portal.
-2. Under **Settings** -> **Regions** -> **Shipping Options**, create a new Fulfillment Option.
-3. You will now see **`shiprocket`** available as the fulfillment provider! 
-
-When configuring a Shipping Option equipped with Shiprocket, Medusa will automatically communicate with Shiprocket on the backend and run the `calculatePrice` bindings, ensuring your fulfillment integration relies purely on live Shiprocket logic.
-
-> **Important**: Shiprocket does NOT provide a testing sandbox. Real requests will impact your actual dashboard and wallet!
-
-> 📖 **For a comprehensive step-by-step guide** — including prerequisites, environment setup, troubleshooting, and architecture overview — see [`docs/INTEGRATION.md`](./docs/INTEGRATION.md).
+**Full setup guide** — env vars, all options, admin configuration, testing, and troubleshooting: [`docs/INTEGRATION.md`](./docs/INTEGRATION.md)
 
 ---
 
-## 🏗️ Development & Building
+## Development & Building
 
 If you are modifying the foundational code layout of this plugin:
 
