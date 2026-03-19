@@ -12,18 +12,20 @@
     "headless"
   ],
   "files": [
-    "**/*.js",
-    "**/*.d.ts"
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "package.json",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "exports": {
     "./package.json": "./package.json",
-    "./providers/*": "./providers/*/index.js",
-    "./*": "./*.js"
+    "./providers/*": "./dist/providers/*/index.js"
   },
   "scripts": {
     "prepare": "cross-env NODE_ENV=production yarn run build",
-    "build": "babel src --out-dir . --ignore **/__tests__ --extensions \".ts,.js\"",
-    "watch": "babel -w src --out-dir . --ignore **/__tests__ --extensions \".ts,.js\""
+    "build": "babel src --out-dir dist --ignore **/__tests__ --extensions \".ts,.js\"",
+    "watch": "babel -w src --out-dir dist --ignore **/__tests__ --extensions \".ts,.js\""
   },
   "dependencies": {
     "@medusajs/utils": "^2.13.4",
