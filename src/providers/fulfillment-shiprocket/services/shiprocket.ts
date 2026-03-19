@@ -1,4 +1,15 @@
 import { AbstractFulfillmentProviderService } from '@medusajs/utils'
+import type {
+  FulfillmentOption,
+  CreateShippingOptionDTO,
+  CalculateShippingOptionPriceDTO,
+  CalculatedShippingOptionPrice,
+  FulfillmentItemDTO,
+  FulfillmentOrderDTO,
+  FulfillmentDTO,
+  CreateFulfillmentResult,
+  ValidateFulfillmentDataContext,
+} from '@medusajs/types'
 import ShiprocketClient from '../core/client'
 import { TOKEN_TTL_MS } from '../utils/constants'
 import { normalizeAmount, sumLineItemTotals } from '../utils/amounts'
@@ -132,9 +143,15 @@ class ShiprocketFulfillmentProviderService extends AbstractFulfillmentProviderSe
     return pickupLocation
   }
 
-  async getFulfillmentOptions(): Promise<any> {
+  async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
     await this.ensureToken_()
-    return this.client_.couriers.retrieveAll('active')
+    const couriers = await this.client_.couriers.retrieveAll('active')
+    return (couriers || []).map((courier: any) => ({
+      id: String(courier.id || courier.courier_company_id),
+      name: courier.name || courier.courier_name,
+      courier_company_id: courier.courier_company_id,
+      ...courier,
+    }))
   }
 
   async validateOption(data: any): Promise<boolean> {
@@ -147,19 +164,23 @@ class ShiprocketFulfillmentProviderService extends AbstractFulfillmentProviderSe
     return !!selectedOpt
   }
 
-  validateFulfillmentData(optionData: any, data: any, _context: any): any {
+  async validateFulfillmentData(
+    optionData: Record<string, unknown>,
+    data: Record<string, unknown>,
+    _context: ValidateFulfillmentDataContext
+  ): Promise<any> {
     return { ...optionData, ...data }
   }
 
-  async canCalculate(_data: any): Promise<boolean> {
+  async canCalculate(_data: CreateShippingOptionDTO): Promise<boolean> {
     return this.options_.pricing === 'calculated'
   }
 
   async calculatePrice(
-    optionData: Record<string, unknown>,
-    _data: Record<string, unknown>,
-    context: any
-  ): Promise<any> {
+    optionData: CalculateShippingOptionPriceDTO['optionData'],
+    _data: CalculateShippingOptionPriceDTO['data'],
+    context: CalculateShippingOptionPriceDTO['context']
+  ): Promise<CalculatedShippingOptionPrice> {
     const ctx = context as PriceCalculationContext
     if (this.options_.pricing === 'flat_rate') {
       throw new ShiprocketError('Shiprocket: Pricing strategy is set to flat_rate')
@@ -216,10 +237,10 @@ class ShiprocketFulfillmentProviderService extends AbstractFulfillmentProviderSe
 
   async createFulfillment(
     data: Record<string, unknown>,
-    items: Record<string, unknown>[],
-    order: Record<string, unknown> | undefined,
-    fulfillment: Record<string, unknown>
-  ): Promise<any> {
+    items: Partial<Omit<FulfillmentItemDTO, 'fulfillment'>>[],
+    order: Partial<FulfillmentOrderDTO> | undefined,
+    fulfillment: Partial<Omit<FulfillmentDTO, 'provider_id' | 'data' | 'items'>>
+  ): Promise<CreateFulfillmentResult> {
     await this.ensureToken_()
 
     const fromOrder = (order as MedusaOrder) || (fulfillment as any)?.order
@@ -304,7 +325,7 @@ class ShiprocketFulfillmentProviderService extends AbstractFulfillmentProviderSe
     }
   }
 
-  async createReturnFulfillment(fulfillment: Record<string, unknown>): Promise<any> {
+  async createReturnFulfillment(fulfillment: Record<string, unknown>): Promise<CreateFulfillmentResult> {
     await this.ensureToken_()
 
     const fulfillmentInput = fulfillment as any
@@ -407,6 +428,39 @@ class ShiprocketFulfillmentProviderService extends AbstractFulfillmentProviderSe
         ids: [orderId],
       })
     }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Document retrieval stubs
+  // Shiprocket's API does not expose endpoints for retrieving shipping labels
+  // or documents by fulfillment. These stubs satisfy the
+  // AbstractFulfillmentProviderService interface contract.
+  // ────────────────────────────────────────────────────────────────────────────
+
+  async getFulfillmentDocuments(
+    _data: Record<string, unknown>
+  ): Promise<never[]> {
+    return []
+  }
+
+  async getReturnDocuments(
+    _data: Record<string, unknown>
+  ): Promise<never[]> {
+    return []
+  }
+
+  async getShipmentDocuments(
+    _data: Record<string, unknown>
+  ): Promise<never[]> {
+    return []
+  }
+
+  async retrieveDocuments(
+    _fulfillmentData: Record<string, unknown>,
+    _documentType: string
+  ): Promise<void> {
+    // Shiprocket does not support document retrieval by type via API.
+    // This is a no-op stub to satisfy the abstract interface.
   }
 }
 

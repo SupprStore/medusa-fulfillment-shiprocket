@@ -99,6 +99,8 @@ When configuring a Shipping Option equipped with Shiprocket, Medusa will automat
 
 > **Important**: Shiprocket does NOT provide a testing sandbox. Real requests will impact your actual dashboard and wallet!
 
+> 📖 **For a comprehensive step-by-step guide** — including prerequisites, environment setup, troubleshooting, and architecture overview — see [`docs/INTEGRATION.md`](./docs/INTEGRATION.md).
+
 ---
 
 ## 🏗️ Development & Building
