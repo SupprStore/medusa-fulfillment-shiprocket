@@ -1,15 +1,15 @@
 import { AbstractFulfillmentProviderService } from '@medusajs/utils'
-import ShiprocketClient from './client'
-import { TOKEN_TTL_MS } from './constants'
-import { normalizeAmount, sumLineItemTotals } from './amounts'
+import ShiprocketClient from '../core/client'
+import { TOKEN_TTL_MS } from '../utils/constants'
+import { normalizeAmount, sumLineItemTotals } from '../utils/amounts'
 import {
   buildForwardFulfillmentPayload,
   buildForwardOrderPayload,
   buildReturnFulfillmentPayload,
   buildReturnOrderPayload,
-} from './mappers'
-import { getLineItemWeightKg, resolveShipmentMeasurements } from './measurements'
-import { ShiprocketError } from './errors'
+} from '../utils/mappers'
+import { getLineItemWeightKg, resolveShipmentMeasurements } from '../utils/measurements'
+import { ShiprocketError } from '../utils/errors'
 import {
   MedusaLineItem,
   MedusaOrder,
@@ -18,8 +18,8 @@ import {
   ShiprocketLogger,
   ShiprocketPickupLocation,
   ShiprocketProviderOptions,
-} from './types'
-import { ensurePresent, resolveCourierId, toInt } from './utils'
+} from '../types'
+import { ensurePresent, resolveCourierId, toInt } from '../utils'
 
 const normalizeOptions = (options: ShiprocketProviderOptions): ShiprocketProviderOptions => ({
   pricing: 'calculated',

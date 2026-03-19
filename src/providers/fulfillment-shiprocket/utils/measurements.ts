@@ -1,6 +1,6 @@
 import { ShiprocketError } from './errors'
-import { MedusaLineItem, ShiprocketLengthUnit, ShipmentMeasurements } from './types'
-import { toNumber } from './utils'
+import { MedusaLineItem, ShiprocketLengthUnit, ShipmentMeasurements } from '../types'
+import { toNumber } from './index'
 
 type MeasurementOverrides = {
   shipment_length?: number

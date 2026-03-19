@@ -1,9 +1,9 @@
 import axios, { type AxiosInstance } from 'axios'
 import axiosRetry from 'axios-retry'
 import rateLimit from 'axios-rate-limit'
-import { DEFAULT_RATE_LIMIT, DEFAULT_RETRIES, SHIPROCKET_BASE_URL } from './constants'
-import { ShiprocketError } from './errors'
-import { ShiprocketLogger } from './types'
+import { DEFAULT_RATE_LIMIT, DEFAULT_RETRIES, SHIPROCKET_BASE_URL } from '../utils/constants'
+import { ShiprocketError } from '../utils/errors'
+import { ShiprocketLogger } from '../types'
 
 type ShiprocketClientOptions = {
   token?: string

@@ -12,8 +12,8 @@ import {
   ShiprocketProviderOptions,
   ShipmentMeasurements,
   TotalsService,
-} from './types'
-import { formatShiprocketDate, sumTaxRates, toInt } from './utils'
+} from '../types'
+import { formatShiprocketDate, sumTaxRates, toInt } from './index'
 
 type ForwardPayloadInput = {
   options: ShiprocketProviderOptions
