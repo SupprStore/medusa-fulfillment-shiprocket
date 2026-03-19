@@ -4,6 +4,7 @@ import rateLimit from 'axios-rate-limit'
 import { DEFAULT_RATE_LIMIT, DEFAULT_RETRIES, SHIPROCKET_BASE_URL } from '../utils/constants'
 import { ShiprocketError } from '../utils/errors'
 import { ShiprocketLogger } from '../types'
+import { DefaultApi, Configuration } from '../../../lib/shiprocket-client'
 
 type ShiprocketClientOptions = {
   token?: string
@@ -11,28 +12,34 @@ type ShiprocketClientOptions = {
 }
 
 class ShiprocketClient {
-  private client_: AxiosInstance
+  private axiosInstance_: AxiosInstance
   private logger_?: ShiprocketLogger
+  private api_: DefaultApi
 
   constructor({ token, logger }: ShiprocketClientOptions = {}) {
     this.logger_ = logger
 
     const baseClient = axios.create({
-      baseURL: SHIPROCKET_BASE_URL,
       headers: {
         'content-type': 'application/json',
       },
     })
 
-    this.client_ = rateLimit(baseClient, {
+    this.axiosInstance_ = rateLimit(baseClient, {
       maxRequests: DEFAULT_RATE_LIMIT.maxRequests,
       perMilliseconds: DEFAULT_RATE_LIMIT.perMilliseconds,
     })
 
-    axiosRetry(this.client_, {
+    axiosRetry(this.axiosInstance_, {
       retries: DEFAULT_RETRIES,
       retryDelay: axiosRetry.exponentialDelay,
     })
+
+    const config = new Configuration({
+      basePath: SHIPROCKET_BASE_URL,
+    })
+
+    this.api_ = new DefaultApi(config, SHIPROCKET_BASE_URL, this.axiosInstance_)
 
     if (token) {
       this.setToken(token)
@@ -41,193 +48,157 @@ class ShiprocketClient {
 
   setToken = (token?: string) => {
     if (token) {
-      this.client_.defaults.headers.Authorization = `Bearer ${token}`
+      this.axiosInstance_.defaults.headers.Authorization = `Bearer ${token}`
     } else {
-      delete this.client_.defaults.headers.Authorization
+      delete this.axiosInstance_.defaults.headers.Authorization
     }
   }
 
-  private async request_<T>(
-    config: Parameters<AxiosInstance['request']>[0],
-    errorMessage: string
-  ): Promise<T> {
-    try {
-      const response = await this.client_.request<T>(config)
-      return response.data
-    } catch (error: any) {
-      const statusCode = error?.response?.status
-      const details = error?.response?.data
-      if (this.logger_?.error) {
-        this.logger_.error(`Shiprocket: ${errorMessage}`)
-      }
-      throw new ShiprocketError(errorMessage, {
-        statusCode,
-        details,
-        cause: error,
-      })
+  private async handleError(error: any, errorMessage: string): Promise<never> {
+    const statusCode = error?.response?.status
+    const details = error?.response?.data
+    if (this.logger_?.error) {
+      this.logger_.error(`Shiprocket: ${errorMessage}`)
     }
+    throw new ShiprocketError(errorMessage, {
+      statusCode,
+      details,
+      cause: error,
+    })
   }
 
   auth = {
     login: async (email: string, password: string): Promise<string> => {
-      const data = await this.request_<{ token?: string }>(
-        {
-          method: 'post',
-          url: '/auth/login',
-          data: { email, password },
-        },
-        'Failed to authenticate with Shiprocket.'
-      )
-
-      if (!data?.token) {
-        throw new ShiprocketError('Shiprocket: Failed to refresh token.')
+      try {
+        const { data } = await this.api_.login({ loginRequest: { email, password } })
+        if (!(data as any)?.token) {
+          throw new ShiprocketError('Shiprocket: Failed to refresh token.')
+        }
+        return (data as any).token
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to authenticate with Shiprocket.')
       }
-
-      return data.token
-    },
+    }
   }
 
   orders = {
     retrieveById: async (id: string | number) => {
-      const data = await this.request_<{ data?: { data?: any } }>(
-        {
-          method: 'get',
-          url: `/orders/show/${id}`,
-        },
-        'Failed to retrieve Shiprocket order.'
-      )
-      return data?.data?.data
+      try {
+        const { data } = await this.api_.getOrder({ id: String(id) })
+        return (data as any)?.data
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to retrieve Shiprocket order.')
+      }
     },
     createCustom: async (payload: any) => {
-      return this.request_<any>(
-        {
-          method: 'post',
-          url: '/orders/create/adhoc',
-          data: payload,
-        },
-        'Failed to create Shiprocket order.'
-      )
+      try {
+        const { data } = await this.api_.createCustomOrder({ body: payload })
+        return data
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to create Shiprocket order.')
+      }
     },
     createForChannel: async (payload: any) => {
-      return this.request_<any>(
-        {
-          method: 'post',
-          url: '/orders/create',
-          data: payload,
-        },
-        'Failed to create Shiprocket order for channel.'
-      )
+      try {
+        const { data } = await this.api_.createChannelOrder({ body: payload })
+        return data
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to create Shiprocket order for channel.')
+      }
     },
     cancelOrder: async (payload: any) => {
-      await this.request_<any>(
-        {
-          method: 'post',
-          url: '/orders/cancel',
-          data: payload,
-        },
-        'Failed to cancel Shiprocket order.'
-      )
+      try {
+        const { data } = await this.api_.cancelOrder({ cancelOrderRequest: payload })
+        return data
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to cancel Shiprocket order.')
+      }
     },
     cancelShipment: async (payload: any) => {
-      const data = await this.request_<{ message?: string }>(
-        {
-          method: 'post',
-          url: '/orders/cancel/shipment/awbs',
-          data: payload,
-        },
-        'Failed to cancel Shiprocket shipment.'
-      )
-      return data?.message
+      try {
+        const { data } = await this.api_.cancelShipment({ cancelShipmentRequest: payload })
+        return (data as any)?.message
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to cancel Shiprocket shipment.')
+      }
     },
   }
 
   shipments = {
     retrieveById: async (id: string | number) => {
-      const data = await this.request_<{ data?: { data?: any } }>(
-        {
-          method: 'get',
-          url: `/shipments/${id}`,
-        },
-        'Failed to retrieve Shiprocket shipment.'
-      )
-      return data?.data?.data
+      try {
+        const { data } = await this.api_.getShipment({ id: String(id) })
+        return (data as any)?.data
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to retrieve Shiprocket shipment.')
+      }
     },
   }
 
   couriers = {
     retrieveAll: async (type: string) => {
-      const data = await this.request_<{ courier_data?: any }>(
-        {
-          method: 'get',
-          url: '/courier/courierListWithCounts',
-          params: { type },
-        },
-        'Failed to retrieve Shiprocket couriers.'
-      )
-      return data?.courier_data
+      try {
+        const { data } = await this.api_.getCouriers({ type })
+        return (data as any)?.courier_data
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to retrieve Shiprocket couriers.')
+      }
     },
     getServiceability: async (payload: any) => {
-      const data = await this.request_<{ data?: any }>(
-        {
-          method: 'get',
-          url: '/courier/serviceability',
-          params: payload,
-        },
-        'Failed to retrieve Shiprocket serviceability.'
-      )
-      return data?.data
-    },
+      try {
+        const { data } = await this.api_.getServiceability({
+          pickupPostcode: payload.pickup_postcode,
+          deliveryPostcode: payload.delivery_postcode,
+          cod: payload.cod,
+          weight: payload.weight,
+          declaredValue: payload.declared_value
+        })
+        return (data as any)?.data
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to retrieve Shiprocket serviceability.')
+      }
+    }
   }
 
   company = {
     retrieveAll: async () => {
-      const data = await this.request_<{ data?: any }>(
-        {
-          method: 'get',
-          url: '/settings/company/pickup',
-        },
-        'Failed to retrieve Shiprocket pickup locations.'
-      )
-      return data?.data
-    },
+      try {
+        const { data } = await this.api_.getPickupLocations()
+        return (data as any)?.data
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to retrieve Shiprocket pickup locations.')
+      }
+    }
   }
 
   returns = {
     createReturn: async (payload: any) => {
-      return this.request_<any>(
-        {
-          method: 'post',
-          url: '/orders/create/return',
-          data: payload,
-        },
-        'Failed to create Shiprocket return order.'
-      )
-    },
+      try {
+        const { data } = await this.api_.createReturn({ body: payload })
+        return data
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to create Shiprocket return order.')
+      }
+    }
   }
 
   wrapper = {
     forward: async (payload: any) => {
-      const data = await this.request_<{ payload?: any }>(
-        {
-          method: 'post',
-          url: '/shipments/create/forward-shipment',
-          data: payload,
-        },
-        'Failed to create Shiprocket forward shipment.'
-      )
-      return data?.payload
+      try {
+        const { data } = await this.api_.createForwardShipment({ body: payload })
+        return (data as any)?.payload
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to create Shiprocket forward shipment.')
+      }
     },
     reverse: async (payload: any) => {
-      const data = await this.request_<{ payload?: any }>(
-        {
-          method: 'post',
-          url: '/shipments/create/return-shipment',
-          data: payload,
-        },
-        'Failed to create Shiprocket return shipment.'
-      )
-      return data?.payload
-    },
+      try {
+        const { data } = await this.api_.createReturnShipment({ body: payload })
+        return (data as any)?.payload
+      } catch (err: any) {
+        throw await this.handleError(err, 'Failed to create Shiprocket return shipment.')
+      }
+    }
   }
 }
 
