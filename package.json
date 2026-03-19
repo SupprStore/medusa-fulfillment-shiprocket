@@ -24,7 +24,7 @@
   },
   "scripts": {
     "prepare": "cross-env NODE_ENV=production yarn run build",
-    "build": "babel src --out-dir dist --ignore **/__tests__ --extensions \".ts,.js\"",
+    "build": "babel src --out-dir dist --ignore **/__tests__ --extensions \".ts,.js\" && tsc -p tsconfig.json",
     "watch": "babel -w src --out-dir dist --ignore **/__tests__ --extensions \".ts,.js\"",
     "openapi:gen": "OAC_PATH=src/lib/shiprocket-client && rm -rf $OAC_PATH && openapi-generator-cli generate -i openapi/upstream.yaml -g typescript-axios -o $OAC_PATH --skip-validate-spec --additional-properties=useSingleRequestParameter=true"
   },
