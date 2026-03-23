@@ -1,0 +1,279 @@
+openapi: 3.0.0
+info:
+  title: Shiprocket API
+  version: 1.0.0
+  description: Handcrafted OpenAPI spec for Shiprocket API endpoints used by the Medusa fulfillment plugin.
+servers:
+  - url: https://apiv2.shiprocket.in/v1/external
+paths:
+  /auth/login:
+    post:
+      summary: Login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+  /orders/show/{id}:
+    get:
+      summary: Get Order
+      operationId: getOrder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+  /orders/create/adhoc:
+    post:
+      summary: Create Custom Order
+      operationId: createCustomOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /orders/create:
+    post:
+      summary: Create Channel Order
+      operationId: createChannelOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /orders/cancel:
+    post:
+      summary: Cancel Order
+      operationId: cancelOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: OK
+  /orders/cancel/shipment/awbs:
+    post:
+      summary: Cancel Shipment
+      operationId: cancelShipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                awbs:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /shipments/{id}:
+    get:
+      summary: Get Shipment
+      operationId: getShipment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+  /courier/courierListWithCounts:
+    get:
+      summary: Get Couriers
+      operationId: getCouriers
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  courier_data:
+                    type: array
+                    items:
+                      type: object
+  /courier/serviceability:
+    get:
+      summary: Get Serviceability
+      operationId: getServiceability
+      parameters:
+        - in: query
+          name: pickup_postcode
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: delivery_postcode
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: cod
+          schema:
+            type: boolean
+        - in: query
+          name: weight
+          schema:
+            type: number
+        - in: query
+          name: declared_value
+          schema:
+            type: number
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+  /settings/company/pickup:
+    get:
+      summary: Get Pickup Locations
+      operationId: getPickupLocations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+  /orders/create/return:
+    post:
+      summary: Create Return
+      operationId: createReturn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /shipments/create/forward-shipment:
+    post:
+      summary: Create Forward Shipment
+      operationId: createForwardShipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payload:
+                    type: object
+  /shipments/create/return-shipment:
+    post:
+      summary: Create Return Shipment
+      operationId: createReturnShipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payload:
+                    type: object

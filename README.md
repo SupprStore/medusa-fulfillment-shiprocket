@@ -1,8 +1,23 @@
-# medusa-fulfillment-shiprocket
+# Medusa Fulfillment Shiprocket (v2)
 
-Shiprocket fulfillment module provider for Medusa v2.0+.
+A resilient, strictly-typed, and OpenAPI-compliant Shiprocket fulfillment plugin crafted natively for the **MedusaJS v2 Framework**.
 
-## Install
+This integration allows Medusa storefronts to seamlessly calculate real-time shipping rates, create custom/forward channel orders, synchronize inventory, and dispatch returns to Shiprocket automatically. It utilizes a highly robust API wrapper backed by auto-generated `typescript-axios` bindings.
+
+---
+
+## Features
+
+- **Medusa v2 Alignment**: Fully leverages the `@medusajs/framework` v2 provider architectures.
+- **OpenAPI Type Safety**: Core API behaviors are handled by an auto-generated strict OpenAPI v3 client.
+- **Network Resilience**: Employs built-in rate-limiting (max 2 req/sec) and exponential backoff retrying out-of-the-box using `axios-rate-limit` and `axios-retry`.
+- **Advanced Fulfillment**: Handles Split shipments vs Single shipments, calculated rates, and auto-mapping of pickup locations.
+
+---
+
+## Installation
+
+To install the integration into your Medusa application:
 
 ```bash
 npm install medusa-fulfillment-shiprocket
@@ -10,19 +25,22 @@ npm install medusa-fulfillment-shiprocket
 yarn add medusa-fulfillment-shiprocket
 ```
 
-## Configure
+---
 
-Set environment variables:
+## Quick Start
 
 ```bash
-SHIPROCKET_CHANNEL_ID=<YOUR_SHIPROCKET_CHANNEL_ID>
-SHIPROCKET_EMAIL=<YOUR_SHIPROCKET_EMAIL>
-SHIPROCKET_PASSWORD=<YOUR_SHIPROCKET_PASSWORD>
+# 1. Install
+yarn add medusa-fulfillment-shiprocket
+
+# 2. Set env vars
+SHIPROCKET_CHANNEL_ID=<your-channel-id>
+SHIPROCKET_EMAIL=<your-email>
+SHIPROCKET_PASSWORD=<your-password>
 ```
 
-Add the provider in `medusa-config.ts` (or `.js`):
-
 ```ts
+// 3. Register in medusa-config.ts
 import { defineConfig } from "@medusajs/framework/utils"
 
 export default defineConfig({
@@ -32,19 +50,12 @@ export default defineConfig({
       options: {
         providers: [
           {
-            resolve: "medusa-fulfillment-shiprocket/providers/shiprocket",
+            resolve: "medusa-fulfillment-shiprocket/providers/fulfillment-shiprocket",
             id: "shiprocket",
             options: {
               channel_id: process.env.SHIPROCKET_CHANNEL_ID,
               email: process.env.SHIPROCKET_EMAIL,
               password: process.env.SHIPROCKET_PASSWORD,
-              token: "", // optional if you manage tokens yourself
-              pricing: "calculated", // "flat_rate" | "calculated"
-              length_unit: "cm", // "mm" | "cm" | "inches"
-              multiple_items: "split_shipment", // "single_shipment" | "split_shipment"
-              inventory_sync: false, // true | false
-              forward_action: "create_order", // "create_order" | "create_fulfillment"
-              return_action: "create_order", // "create_order" | "create_fulfillment"
             },
           },
         ],
@@ -54,25 +65,40 @@ export default defineConfig({
 })
 ```
 
-## Options
+> **Warning**: Shiprocket does **not** provide a testing sandbox. Real requests impact your live dashboard and wallet.
 
-`channel_id` (required): Shiprocket channel ID.  
-`email`, `password`: Required if `token` is not provided.  
-`token`: Optional pre-generated token.  
-`pricing`: `flat_rate` or `calculated`.  
-`length_unit`: `mm`, `cm`, or `inches`.  
-`multiple_items`: `single_shipment` or `split_shipment`.  
-`inventory_sync`: `true` to sync inventory (Shiprocket plan required).  
-`forward_action`: `create_order` or `create_fulfillment`.  
-`return_action`: `create_order` or `create_fulfillment`.
+**Full setup guide** — env vars, all options, admin configuration, testing, and troubleshooting: [`docs/INTEGRATION.md`](./docs/INTEGRATION.md)
 
-## Usage
+---
 
-1. Enable the provider in Medusa Admin.
-2. Add a shipping option using the Shiprocket provider.
-3. Place an order and create fulfillment in Admin.
+## Development & Building
 
-## Notes
+If you are modifying the foundational code layout of this plugin:
 
-- Shiprocket does not provide a sandbox. Test orders affect your wallet and appear in the dashboard.
-- Ensure product variant weight is in grams. Length/width/height must match `length_unit`.
+### 1. Generating the OpenAPI Client
+If you alter `openapi/upstream.yaml`, re-generate the underlying `typescript-axios` module:
+```bash
+yarn openapi:gen
+```
+
+### 2. Utilizing the OpenAPI Client natively
+
+If you are extending the provider with new Shiprocket features, you can directly invoke the fully typed client:
+
+```typescript
+import { ShiprocketClient } from "medusa-fulfillment-shiprocket/providers/fulfillment-shiprocket/core/client"
+
+// The core client wraps the auto-generated DefaultApi.
+// All endpoints are fully documented and statically typed!
+const response = await this.client_.api_.createCustomOrder({ body: payload })
+```
+
+### 3. Building for Distribution
+The plugin uses Babel for JS transpiration and `tsc` for TypeScript `.d.ts` declaration wrapping.
+To prepare the final distribution payload in `/dist`:
+```bash
+yarn build
+```
+
+### 3. Verification Updates
+If you commit new changes to this root folder, you easily test changes locally by linking this package or manually dropping the `/dist` artifacts inside your core project backend.

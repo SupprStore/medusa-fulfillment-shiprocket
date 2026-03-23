@@ -12,18 +12,21 @@
     "headless"
   ],
   "files": [
-    "**/*.js",
-    "**/*.d.ts"
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "package.json",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "exports": {
     "./package.json": "./package.json",
-    "./providers/*": "./providers/*/index.js",
-    "./*": "./*.js"
+    "./providers/*": "./dist/providers/*/index.js"
   },
   "scripts": {
     "prepare": "cross-env NODE_ENV=production yarn run build",
-    "build": "babel src --out-dir . --ignore **/__tests__ --extensions \".ts,.js\"",
-    "watch": "babel -w src --out-dir . --ignore **/__tests__ --extensions \".ts,.js\""
+    "build": "babel src --out-dir dist --ignore **/__tests__ --extensions \".ts,.js\" && tsc -p tsconfig.json",
+    "watch": "babel -w src --out-dir dist --ignore **/__tests__ --extensions \".ts,.js\"",
+    "openapi:gen": "OAC_PATH=src/lib/shiprocket-client && rm -rf $OAC_PATH && openapi-generator-cli generate -i openapi/upstream.yaml -g typescript-axios -o $OAC_PATH --skip-validate-spec --additional-properties=useSingleRequestParameter=true"
   },
   "dependencies": {
     "@medusajs/utils": "^2.13.4",
@@ -38,6 +41,7 @@
     "@babel/cli": "^7.14.3",
     "@babel/core": "^7.14.3",
     "@medusajs/framework": "^2.0.0",
+    "@openapitools/openapi-generator-cli": "^2.30.2",
     "babel-preset-medusa-package": "^1.1.19",
     "cross-env": "^5.2.1",
     "eslint": "^6.8.0",
